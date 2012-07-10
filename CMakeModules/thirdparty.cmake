@@ -1,0 +1,7 @@
+MACRO( THIRDPARTY_DIR thirdpartydir)
+ file(GLOB thirdparty ${thirdpartydir}/* )
+ set( CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${thirdparty} )
+ file(GLOB thirdparty_lib ${thirdpartydir}/*/lib )
+ file(GLOB thirdparty_bin ${thirdpartydir}/*/bin )
+ LINK_DIRECTORIES( ${thirdparty_bin} )
+ENDMACRO()
