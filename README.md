@@ -25,8 +25,16 @@ For example, the GLEW lib inside the thirdparty folder looks like this:
 
 (This is exactly what you get when you extract the package you get at Glew official page)
 
+Deploy with Dependents Libraries
+--------------------------------
+On your CMakeLists.txt, instead of `INSTALL(...)` invoke `INSTALL_WITH_DEPS(...)`, the ThirdParty will search for dependencies of the specified targets through a helper python script which invokes `ldd` on posix and Dependency Walker on windows. Dependency walker must be available in the thirdparty directory.
+
+Then, when you invoke _cpack_ or _make install_ the dependents libraries will be installed as well.
+
+Read [CMake INSTALL documentation](http://www.cmake.org/cmake/help/v2.8.8/cmake.html#command:install) for help on how to use the `INSTALL` command.
+
 Future Work
 -----------
-The first feature that will be added is to add deployment capabilities with dependencies tracking.
+Support `objdump` (if dependency walker is not available) on windows deploying.
 
-Also, since my skills of explaing how to use `thirdparty.cmake` are very limited, I will add a sample of usage soon.
+Since my skills of explaing how to use `thirdparty.cmake` are very limited, I will add a sample of usage soon.
