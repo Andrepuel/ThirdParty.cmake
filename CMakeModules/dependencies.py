@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+
 import os
 import shutil
 import subprocess
@@ -47,23 +48,24 @@ def _find_win_dll(search_paths,dll_basename):
 		if os.path.exists(i):
 			if os.path.exists(os.path.join(i,dll_basename)):
 				return os.path.realpath(os.path.join(i,dll_basename))
-	raise Exception("Dll not found")
+	raise IOError("Dll not found")
 
 def _find_depends(search_paths):
 	for i in search_paths:
 		if os.path.exists(os.path.join(i,"depends.exe")):
 			return os.path.join(i,"depends.exe")
 	raise Exception("Dependency walker not found")
-
-def _dependencies_libs_nt(search_paths,path):
-	result = []
+	
+def _dependencies_libs_nt_recursive(search_paths,path,result):
 	path2 = os.path.abspath(path)
 	assert os.path.basename(path) not in _libs_blacklist_win
 	dependsExePath = _find_depends(search_paths)
 	lastdir = os.getcwd()
-	subprocess.call([dependsExePath,"/c","/ot:dependency-output.txt",path2])
+	os.chdir(os.path.dirname(path2))
+	outputfile = "dependency-output-"+str(os.path.basename(path))+".txt"
+	subprocess.call([dependsExePath,"/c","/ot:"+outputfile,path2])
 
-	depfile = open("dependency-output.txt")
+	depfile = open(outputfile)
 	depfile_tree = []
 	started = False
 	start_string = "***************************| Module Dependency Tree"
@@ -105,14 +107,21 @@ def _dependencies_libs_nt(search_paths,path):
 #			sys.stderr.writelines(str((lvl,dll_name,lineNumber))+"\r\n") #Debugging line that helps making the blacklist
 			try:
 				if lvl > 0:
-					result.append(_find_win_dll(search_paths,dll_name))
-			except Exception:
-				sys.stderr.writelines((dll_name)+" not found.")
+					full_path = _find_win_dll(search_paths,dll_name)
+					if not full_path in result:
+						result.add(full_path)
+						_dependencies_libs_nt_recursive(search_paths,full_path,result)
+			except IOError:
+				sys.stderr.writelines("\""+str(dll_name)+"\" not found.\r\n")
 	depfile.close()
-	os.unlink("dependency-output.txt")
+	os.unlink(outputfile)
 	os.chdir(lastdir)
-	return result
 
+def _dependencies_libs_nt(search_paths,path):
+	result = set()
+	_dependencies_libs_nt_recursive(search_paths,path,result)
+	return list(result)
+	
 def _posix_lib_basename(path):
 	file_basename = os.path.basename(path).split(".")
 	while file_basename[-1].isdigit():
