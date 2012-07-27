@@ -7,7 +7,7 @@ import sys
 
 _libs_blacklist_win = set({
 	"kernel32.dll","msvcrt.dll","glu32.dll","mswsock.dll","opengl32.dll","wsock32.dll","ws2_32.dll","advapi32.dll","ole32.dll",
-	"user32.dll","comdlg32.dll","gdi32.dll","imm32.dll","shell32.dll","oleaut32.dll","winmm.dll"
+	"user32.dll","comdlg32.dll","gdi32.dll","imm32.dll","shell32.dll","oleaut32.dll","winmm.dll","ntdll.dll","cfgmgr32.dll"
 })
 
 _libs_blacklist_posix = set([
@@ -97,12 +97,12 @@ def _dependencies_libs_nt(search_paths,path):
 			if searched2 is not None:
 				ignore_until = lvl
 			continue
-		dll_name = searched.group(0).lower()
+		dll_name = os.path.basename(searched.group(0).lower())
 		if dll_name in _libs_blacklist_win:
-#				print(lvl,dll_name,"ignore") #Debugging line that helps making the blacklist
+#			sys.stderr.writelines(str((lvl,dll_name))+"ignore") #Debugging line that helps making the blacklist
 			ignore_until = lvl
 		else:
-#				print(lvl,dll_name,lineNumber) #Debugging line that helps making the blacklist
+#			sys.stderr.writelines(str((lvl,dll_name,lineNumber))+"\r\n") #Debugging line that helps making the blacklist
 			try:
 				if lvl > 0:
 					result.append(_find_win_dll(search_paths,dll_name))
