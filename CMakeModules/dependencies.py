@@ -8,7 +8,8 @@ import sys
 
 _libs_blacklist_win = set({
 	"kernel32.dll","msvcrt.dll","glu32.dll","mswsock.dll","opengl32.dll","wsock32.dll","ws2_32.dll","advapi32.dll","ole32.dll",
-	"user32.dll","comdlg32.dll","gdi32.dll","imm32.dll","shell32.dll","oleaut32.dll","winmm.dll","ntdll.dll","cfgmgr32.dll"
+	"user32.dll","comdlg32.dll","gdi32.dll","imm32.dll","shell32.dll","oleaut32.dll","winmm.dll","ntdll.dll","cfgmgr32.dll",
+	"msvcp110d.dll","msvcr110d.dll","msvcr110.dll"
 })
 
 _libs_blacklist_posix = set([
@@ -59,11 +60,14 @@ def _find_depends(search_paths):
 def _dependencies_libs_nt_recursive(search_paths,path,result):
 	path2 = os.path.abspath(path)
 	assert os.path.basename(path) not in _libs_blacklist_win
+	assert os.path.exists(path2)
 	dependsExePath = _find_depends(search_paths)
 	lastdir = os.getcwd()
 	os.chdir(os.path.dirname(path2))
 	outputfile = "dependency-output-"+str(os.path.basename(path))+".txt"
 	subprocess.call([dependsExePath,"/c","/ot:"+outputfile,path2])
+	if not os.path.exists(outputfile):
+		raise RuntimeError("Dependency walker did not generate output file for "+path+"If it is a system library it should be on the blacklist.")
 
 	depfile = open(outputfile)
 	depfile_tree = []
