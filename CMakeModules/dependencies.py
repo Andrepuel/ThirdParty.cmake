@@ -9,7 +9,7 @@ import sys
 _libs_blacklist_win = set({
 	"kernel32.dll","msvcrt.dll","glu32.dll","mswsock.dll","opengl32.dll","wsock32.dll","ws2_32.dll","advapi32.dll","ole32.dll",
 	"user32.dll","comdlg32.dll","gdi32.dll","imm32.dll","shell32.dll","oleaut32.dll","winmm.dll","ntdll.dll","cfgmgr32.dll",
-	"msvcp110d.dll","msvcr110d.dll","msvcr110.dll"
+	"msvcp110d.dll","msvcr110d.dll","msvcr110.dll","msvcp100d.dll","msvcr100d.dll","msvcp100.dll","msvcr100.dll","msvcp110.dll"
 })
 
 _libs_blacklist_posix = set([
@@ -67,7 +67,7 @@ def _dependencies_libs_nt_recursive(search_paths,path,result):
 	outputfile = "dependency-output-"+str(os.path.basename(path))+".txt"
 	subprocess.call([dependsExePath,"/c","/ot:"+outputfile,path2])
 	if not os.path.exists(outputfile):
-		raise RuntimeError("Dependency walker did not generate output file for "+path+"If it is a system library it should be on the blacklist.")
+		raise RuntimeError("Dependency walker did not generate output file for "+path+". If it is a system library it should be on the blacklist.")
 
 	depfile = open(outputfile)
 	depfile_tree = []
@@ -117,6 +117,8 @@ def _dependencies_libs_nt_recursive(search_paths,path,result):
 						_dependencies_libs_nt_recursive(search_paths,full_path,result)
 			except IOError:
 				sys.stderr.writelines("\""+str(dll_name)+"\" not found.\r\n")
+			except RuntimeError:
+				sys.stderr.writelines("Dependency Walker could not run for \""+str(dll_name)+"\"")
 	depfile.close()
 	os.unlink(outputfile)
 	os.chdir(lastdir)
