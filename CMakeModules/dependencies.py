@@ -42,13 +42,18 @@ _libs_blacklist_posix = set([
 
 def _find_win_dll(search_paths,dll_basename):
 	assert os.name == 'nt'
-	search_path = os.environ['PATH'].split(';')
+	environ_path = os.environ['PATH'].split(';')
+	search_path = []
 	search_path.extend(search_paths)
 	search_path.append(os.getcwd())
+	for i in environ_path:
+		if os.path.exists(i):
+			if os.path.exists(os.path.join(i,dll_basename)):
+				return (True,os.path.realpath(os.path.join(i,dll_basename)))
 	for i in search_path:
 		if os.path.exists(i):
 			if os.path.exists(os.path.join(i,dll_basename)):
-				return os.path.realpath(os.path.join(i,dll_basename))
+				return (False,os.path.realpath(os.path.join(i,dll_basename)))
 	raise IOError("Dll not found")
 
 def _find_depends(search_paths):
@@ -59,7 +64,7 @@ def _find_depends(search_paths):
 	
 def _dependencies_libs_nt_recursive(search_paths,path,result):
 	path2 = os.path.abspath(path)
-	assert os.path.basename(path) not in _libs_blacklist_win
+	assert os.path.basename(path2) not in _libs_blacklist_win
 	assert os.path.exists(path2)
 	dependsExePath = _find_depends(search_paths)
 	lastdir = os.getcwd()
@@ -88,18 +93,22 @@ def _dependencies_libs_nt_recursive(search_paths,path,result):
 	assert started
 	
 	ignore_until = 1000
+
+	lvlRe = re.compile("^\s*")
+	searchRe = re.compile("[^ ]*\.DLL")
+	search2Re = re.compile("[^ ]*\.[A-Z]{3}")
 	for i in depfile_tree:
 		lineNumber += 1
-		lvl = len(re.search("^\s*",i).group(0))/5
+		lvl = len(lvlRe.search(i).group(0))/5
 		if lvl == 0:
 			continue
 		if( lvl > ignore_until ):
 			continue;
 		else:
 			ignore_until = 1000
-		searched = re.search("[^ ]*\.DLL",i)
+		searched = searchRe.search(i)
 		if searched is None:
-			searched2 = re.search("[^ ]*\.[A-Z]{3}",i)
+			searched2 = search2Re.search(i)
 			if searched2 is not None:
 				ignore_until = lvl
 			continue
@@ -111,14 +120,16 @@ def _dependencies_libs_nt_recursive(search_paths,path,result):
 #			sys.stderr.writelines(str((lvl,dll_name,lineNumber))+"\r\n") #Debugging line that helps making the blacklist
 			try:
 				if lvl > 0:
-					full_path = _find_win_dll(search_paths,dll_name)
+					(in_PATH,full_path) = _find_win_dll(search_paths,dll_name)
 					if not full_path in result:
 						result.add(full_path)
-						_dependencies_libs_nt_recursive(search_paths,full_path,result)
+						if not in_PATH:
+							_dependencies_libs_nt_recursive(search_paths,full_path,result)
 			except IOError:
 				sys.stderr.writelines("\""+str(dll_name)+"\" not found.\r\n")
 			except RuntimeError:
 				sys.stderr.writelines("Dependency Walker could not run for \""+str(dll_name)+"\"")
+
 	depfile.close()
 	os.unlink(outputfile)
 	os.chdir(lastdir)
@@ -163,6 +174,16 @@ if __name__ == "__main__":
 		sys.exit(1)
 	target = sys.argv[-1]
 	search_paths = list(map(os.path.abspath,sys.argv[1:len(sys.argv)-1]))
-	
+
+	if not os.path.exists(target) and os.path.exists(os.path.join(search_paths[0],os.path.basename(target))):
+		sys.stderr.writelines(target + " does not exist, switching for ")
+		target = os.path.join(search_paths[0],os.path.basename(target))
+		sys.stderr.writelines(target + "\n")
+		
+
+	if not os.path.exists(target):
+		sys.stderr.writelines(target + " does not exist\n")
+		sys.exit(1)
+
 	os.chdir(os.path.dirname(target))
 	sys.stdout.writelines( ";".join(dependencies_libs(search_paths,os.path.basename(target))) )
