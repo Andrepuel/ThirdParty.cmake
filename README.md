@@ -33,6 +33,12 @@ Then, when you invoke _cpack_ or _make install_ the dependents libraries will be
 
 Read [CMake INSTALL documentation](http://www.cmake.org/cmake/help/v2.8.8/cmake.html#command:install) for help on how to use the `INSTALL` command.
 
+Source group tree
+-----------------
+The source_group_tree.cmake provides the source_group_tree macro, which may be used as `source_group_tree(FilteName directory)`.
+source_group_tree will scan `directory` recursively and will create source_group according to the dir hierarchy.
+
+
 Future Work
 -----------
 Support `objdump` (if dependency walker is not available) on windows deploying.
